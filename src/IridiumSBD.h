@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <WString.h> // for FlashString
 #include <Stream.h> // for Stream
+#include <QDispatch.h> //http://librarymanager/All#QDispatch
 
 #ifndef IRIDIUM_SBD // https://github.com/mikalhart/IridiumSBD/pull/14
 #define IRIDIUM_SBD
@@ -133,8 +134,9 @@ public:
    int passThruI2Cread(uint8_t *rxBuffer, size_t &rxBufferSize, size_t &numBytes);
    int passThruI2Cwrite(uint8_t *txBuffer, size_t &txBufferSize);
 
-   IridiumSBD(Stream &str, int sleepPinNo = -1, int ringPinNo = -1)
+   IridiumSBD(Stream &str, TaskDispatcher &_dispatcher, int sleepPinNo = -1, int ringPinNo = -1)
    {
+      dispatcher = &_dispatcher;
       useSerial = true;
       stream = &str;
       sbdixInterval = ISBD_USB_SBDIX_INTERVAL;
@@ -189,6 +191,7 @@ private:
    TwoWire  * wireport;
    uint8_t deviceaddress;
    bool useSerial;
+   TaskDispatcher * dispatcher;
 
    //Create the I2C_Serial buffer
    #define I2C_SER_MAX_BUFF 64 // RX buffer size

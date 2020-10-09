@@ -535,8 +535,11 @@ int IridiumSBD::internalBegin()
 
    unsigned long startupTime = 500; //ms
    for (unsigned long start = millis(); millis() - start < startupTime;)
+   {
+      dispatcher->run();
       if (cancelled())
          return ISBD_CANCELLED;
+   }
 
    // Turn on modem and wait for a response from "AT" command to begin
    for (unsigned long start = millis(); !modemAlive && millis() - start < 1000UL * ISBD_STARTUP_MAX_TIME;)
@@ -715,6 +718,7 @@ int IridiumSBD::internalSendReceiveSBD(const char *txTxtMessage, const uint8_t *
    // Long SBDIX loop begins here
    for (unsigned long start = millis(); millis() - start < 1000UL * this->sendReceiveTimeout;)
    {
+      dispatcher->run();
       bool okToProceed = true;
       if (this->msstmWorkaroundRequested)
       {
@@ -876,6 +880,8 @@ bool IridiumSBD::waitForATResponse(char *response, int responseSize, const char 
    consoleprint(F("<< "));
    for (unsigned long start=millis(); millis() - start < 1000UL * atTimeout;)
    {
+      dispatcher->run();
+
       if (cancelled())
          return false;
 
@@ -979,6 +985,7 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
    unsigned long start = millis();
    while (millis() - start < 1000UL * atTimeout)
    {
+      dispatcher->run();
       if(!this->useSerial) check9603data(); // Keep checking for new 9603 serial data
       if (cancelled())
          return ISBD_CANCELLED;
@@ -1008,6 +1015,7 @@ int IridiumSBD::doSBDRB(uint8_t *rxBuffer, size_t *prxBufferSize)
 
    for (uint16_t bytesRead = 0; bytesRead < size;)
    {
+      dispatcher->run();
       if (cancelled())
          return ISBD_CANCELLED;
 
@@ -1119,7 +1127,7 @@ void IridiumSBD::power(bool on)
       // before powering off again
       unsigned long elapsed = millis() - lastPowerOnTime;
       if (elapsed < 2000UL)
-         delay(2000UL - elapsed);
+         dispatcher->delay(2000UL - elapsed);
 
       diagprint(F("Powering off modem...\r\n"));
       if (this->useSerial)
@@ -1382,6 +1390,8 @@ void IridiumSBD::check9603data()
 {
   if (millis() - lastCheck >= I2C_POLLING_WAIT_MS)
   {
+    dispatcher->run();
+
     //Check how many serial bytes are waiting to be read
     uint16_t bytesAvailable = 0;
     wireport->beginTransmission((uint8_t)deviceaddress); // Talk to the I2C device
